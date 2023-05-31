@@ -64,5 +64,5 @@ runs:
       shell: bash
       run: |
         echo "${{ steps.get_release_description_from_changelog.outputs.release_description }}" > "${{ env.RELEASE_VERSION }}.changelog"
-        echo "${{ env.RELEASE_VERSION }}.changelog" >> $GITHUB_OUTPUT
+        echo "changelog_description_file=${{ env.RELEASE_VERSION }}.changelog" >> $GITHUB_OUTPUT
         
