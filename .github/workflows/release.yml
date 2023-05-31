@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Git config
+        env:
+          CI_COMMIT_AUTHOR: Continuous Integration
+          CI_COMMIT_EMAIL: continuous_integration@noreply.eagerminds.tech
+        run: |
+          git config --global user.name "${{ env.CI_COMMIT_AUTHOR }}"
+          git config --global user.email "${{ env.CI_COMMIT_EMAIL }}"
+
+      - id: release
+        uses: eager-minds/github-actions-release@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_major: true
+          tag_minor: true
+          skip_tag_zero: true
+          overwrite_release: true
+          overwrite_tag: true
+#          changelog_path: ./CHANGELOG.md
+#          release_version: "0.0.45"
+#          release_name: Release v0.0.45
+#          disable_changelog: true
+#          release_description: "Tag Version: v0.0.42"
+
+      - id: echo_release_output
+        name: Echo Release Output
+        run: echo ${{ steps.release.outputs.release_url }}
+
+      - name: Control release failure
+        if: ${{ failure() }}
+        run: echo "Previous step failed"

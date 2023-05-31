@@ -1,0 +1,68 @@
+name: "Github Release"
+author: "Eager Minds"
+branding:
+  icon: "package"
+  color: "green"
+description: "Generate GitHub release for a tag"
+
+inputs:
+  release_version:
+    description: "The tag name, required if missing changelog file"
+    required: false
+  release_version_format:
+    description: "Release version format"
+    required: false
+    default: "[0-9]+\\.[0-9]+\\.[0-9]+"
+  changelog_path:
+    description: "Changelog file path to get release description"
+    required: false
+    default: "CHANGELOG.md"
+  changelog_release_version_format:
+    description: "Changelog tag format, defaults to \"^## \\[$release_version_format\\]\""
+    required: false
+outputs:
+  release_version:
+    description: "Release version"
+    value: ${{ steps.release.outputs.release_version }}
+  release_description:
+    description: "Release description"
+    value: ${{ steps.release.outputs.release_description }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: "Set env variables from inputs"
+      shell: bash
+      run: |
+        echo "RELEASE_VERSION=${{ inputs.release_version }}" >> $GITHUB_ENV
+        echo "CHANGELOG_RELEASE_VERSION_FORMAT=${{ inputs.changelog_release_version_format }}" >> $GITHUB_ENV
+
+    - name: Set CHANGELOG_RELEASE_VERSION_FORMAT using defaults
+      if: env.CHANGELOG_RELEASE_VERSION_FORMAT == ''
+      shell: bash
+      run: echo "CHANGELOG_RELEASE_VERSION_FORMAT=^## \\[${{ inputs.release_version_format }}\\]" >> $GITHUB_ENV
+
+    - id: getLatestVersion
+      name: Get latest release_version from CHANGELOG
+      shell: bash
+      run: |
+        changelogSubtitles=$(grep -Eo "${{ env.CHANGELOG_RELEASE_VERSION_FORMAT }}" "${{ inputs.changelog_path }}")
+        mapfile -t versions < <(echo "$changelogSubtitles" | grep -Eo "${{ inputs.release_version_format }}")
+        echo "latest_version=${versions[0]}" >> $GITHUB_OUTPUT
+
+    - id: get_release_description_from_changelog
+      name: "Get release description from changelog file"
+      shell: bash
+      run: |
+        release_description="$($GITHUB_ACTION_PATH/getReleaseFromChangelog.sh)"
+        EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+        echo "RELEASE_DESCRIPTION<<$EOF" >> $GITHUB_OUTPUT
+        echo "$release_description" >> $GITHUB_OUTPUT
+        echo "$EOF" >> $GITHUB_OUTPUT
+
+    - name: "Save release description to ${RELEASE_VERSION}.changelog file"
+      shell: bash
+      run: |
+        echo "${{ steps.get_release_description_from_changelog.outputs.release_description }}" > "${{ env.RELEASE_VERSION }}.changelog"
+        echo "${{ env.RELEASE_VERSION }}.changelog" >> $GITHUB_OUTPUT
+        
