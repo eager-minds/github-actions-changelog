@@ -23,10 +23,13 @@ inputs:
 outputs:
   release_version:
     description: "Release version"
-    value: ${{ steps.release.outputs.release_version }}
+    value: ${{ steps.getLatestVersion.outputs.latest_version }}
   release_description:
     description: "Release description"
-    value: ${{ steps.release.outputs.release_description }}
+    value: ${{ steps.get_release_description_from_changelog.outputs.RELEASE_DESCRIPTION }}
+  release_description_file:
+    description: "Release description"
+    value: ${{ steps.save_release_description.outputs.changelog_description_file }}
 
 runs:
   using: 'composite'
@@ -60,7 +63,8 @@ runs:
         echo "$release_description" >> $GITHUB_OUTPUT
         echo "$EOF" >> $GITHUB_OUTPUT
 
-    - name: "Save release description to ${RELEASE_VERSION}.changelog file"
+    - id: save_release_description
+      name: "Save release description to ${RELEASE_VERSION}.changelog file"
       shell: bash
       run: |
         echo "${{ steps.get_release_description_from_changelog.outputs.release_description }}" > "${{ env.RELEASE_VERSION }}.changelog"
